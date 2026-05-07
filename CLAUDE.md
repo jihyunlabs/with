@@ -37,22 +37,22 @@
   ↓
 /with-plan           # atomic plan + verify (Karpathy)
   ↓
-/codex:adversarial-review   # plan 깨기 (사용자 명시)
+/codex:adversarial-review   # plan 깨기
   ↓
 /with-build          # Sonnet TDD 실행 (Karpathy + Superpowers TDD)
   ↓
-/codex:review        # diff 깨기 (사용자 명시)
+/codex:review        # diff 깨기
   ↓
 /with-review         # Karpathy 4 final check
   ↓
-ship (gh pr create — 직접)
+ship (gh pr create — 사용자 직접)
 ```
 
-각 단계 **사용자 명시 호출**. 자동 chain X. Codex 단계 비용 고려해 패스 가능. 작은 task 는 grill·office-hours 패스 — Karpathy Simplicity 우선.
+**`/with-chain <feature> [--quick] [--no-codex]`** — 위 체인 전체 자동 orchestrate. 사용자 결정 게이트(질문 / section OK / blocker)에서만 정지. 단일 스킬 호출도 그대로 가능. `--quick` 작은 task 는 grill·office-hours 패스. `--no-codex` Codex 단계 패스. ship 은 자동 X — 사용자 결정.
 
 ---
 
-## 3. 스킬 매핑 (6개, `with-` 접두어)
+## 3. 스킬 매핑 (7개, `with-` 접두어)
 
 | 명령 | 출처 | 단계 | 모델 | 출력 |
 |---|---|---|---|---|
@@ -62,6 +62,7 @@ ship (gh pr create — 직접)
 | `/with-plan` | Karpathy Goal-Driven | atomic 분해 | opus | `.claude/plans/<feature>.md` (각 task 에 `→ verify:`) |
 | `/with-build` | Karpathy + Superpowers TDD | 구현 | sonnet | RED-GREEN-REFACTOR atomic commit |
 | `/with-review` | Karpathy 4 | final check | sonnet | 4원칙 위반 보고 (severity) |
+| `/with-chain` | orchestrator | 전 단계 자동 | opus | 위 6개를 순서대로 호출 + 게이트에서만 정지 |
 
 Codex 명령은 plugin 직접 — wrapper X: `/codex:setup` · `/codex:review` · `/codex:adversarial-review` · `/codex:codex-rescue`.
 

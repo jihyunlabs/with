@@ -1,6 +1,6 @@
 # `with` — Karpathy + gstack + Superpowers + Codex 경량 framework
 
-4 출처를 자기모순 없이 조합한 Claude Code framework. 7 스킬 (수동 6 + 자동 orchestrator 1), 단일 체인, CLAUDE.md ~150줄.
+4 출처를 자기모순 없이 조합한 Claude Code framework. 9 스킬 (수동 6 + 자동 orchestrator 3 깊이), CLAUDE.md ~180줄.
 
 | 출처 | 기여 |
 |---|---|
@@ -15,52 +15,102 @@
 
 ## 한 문장
 
-> **grill 로 도메인, office-hours 로 whether, brainstorm 으로 how, plan 으로 atomic, build 로 TDD, codex 로 깨기, review 로 Karpathy final — `/with-chain` 으로 한 방.**
+> **grill 로 도메인, office-hours 로 whether, brainstorm 으로 how, plan 으로 atomic, build 로 TDD, codex 로 깨기, review 로 Karpathy final — 작업 규모에 따라 `/with-chain-light` · `/with-chain-normal` · `/with-chain-deep` 한 방.**
 
 비용 ⅓, 버그 −50% (codex-plugin-cc 사용자 보고).
 
 ---
 
-## 체인
+## 체인 — 3 깊이
+
+작업 규모에 맞춰 깊이 선택. **Codex review 는 모든 깊이에 포함** (`--no-codex` 로만 패스).
+
+### `/with-chain-light <task> [--no-codex]` — 가장 가벼움
 
 ```
 아이디어
   ↓
-/with-grill          # 도메인 + 용어 (Mattpocock)
+명확화 Q&A (1-3 질문)        # Karpathy "Think" 만 통과
   ↓
-/with-office-hours   # YC-partner reframe (gstack)
+/with-build                  # Sonnet TDD
   ↓
-/with-brainstorm     # 대안 + design sections (Superpowers)
+/codex:review                # diff 깨기
   ↓
-/with-plan           # atomic + verify (Karpathy)
+ship (사용자 직접)
+```
+
+버그 fix · 작은 기능 (1~3 파일) · 접근 명백한 task. plan / brainstorm 패스. 4개 이상 명확화 질문 떠오르면 normal 로 escalate.
+
+### `/with-chain-normal <feature> [--no-codex]` — 중간
+
+```
+아이디어
   ↓
-/codex:adversarial-review  # plan 깨기
+/with-brainstorm             # 대안 + design sections
   ↓
-/with-build          # Sonnet TDD (Karpathy + Superpowers)
+/with-plan                   # atomic plan + verify
   ↓
-/codex:review        # diff 깨기
+/codex:adversarial-review    # plan 깨기
   ↓
-/with-review         # Karpathy 4 final
+/with-build                  # Sonnet TDD
+  ↓
+/codex:review                # diff 깨기
+  ↓
+/with-review                 # Karpathy 4 final check
+  ↓
+ship (사용자 직접)
+```
+
+도메인은 알지만 접근 옵션 비교 + atomic plan 필요한 일반 기능 (3~10 파일).
+
+### `/with-chain-deep <feature> [--no-codex]` — 풀 사이클
+
+```
+아이디어
+  ↓
+/with-grill                  # 도메인 + 용어 (Mattpocock)
+  ↓
+/with-office-hours           # YC-partner reframe (gstack)
+  ↓
+/with-brainstorm             # 대안 + design sections (Superpowers)
+  ↓
+/with-plan                   # atomic + verify (Karpathy)
+  ↓
+/codex:adversarial-review    # plan 깨기
+  ↓
+/with-build                  # Sonnet TDD (Karpathy + Superpowers)
+  ↓
+/codex:review                # diff 깨기
+  ↓
+/with-review                 # Karpathy 4 final
   ↓
 ship (gh pr create — 사용자 직접)
 ```
 
-**`/with-chain <feature> [--quick] [--no-codex]`** — 위 체인 전체 자동 orchestrate. 사용자 결정 게이트(질문 / section OK / blocker)에서만 정지.
+새 시스템 · 큰 기능 · 도메인 모델 불명확 · 제품 premise 자체 의심해야 할 때.
 
+**공통**:
 - 자동 advance: 각 스킬 종료 → 다음 스킬 호출 (게이트 없으면)
 - 게이트: grill·office-hours·brainstorm 의 사용자 답변 / OK, codex blocker, review critical/high, build 의 Confusion Protocol
-- `--quick` — grill·office-hours 패스 (작은 task)
-- `--no-codex` — Codex 단계 패스
+- `--no-codex` — Codex 단계 패스 (escape hatch). 기본은 모두 포함.
 - ship 은 자동 X — 사용자 결정 (Karpathy "Think")
 
-단일 스킬 호출도 그대로 가능. /with-chain 은 wrapper 일 뿐.
+단일 스킬 호출도 그대로 가능. /with-chain-* 은 wrapper 일 뿐.
+
+### 깊이 선택 가이드
+
+| 상황 | 깊이 |
+|---|---|
+| 버그 fix · 1~3 파일 · 접근 명백 | **light** |
+| 3~10 파일 · 접근 옵션 비교 필요 | **normal** |
+| 새 시스템 · 도메인 불명확 · premise 의심 | **deep** |
 
 ---
 
 ## 자기모순 X — 4 검증
 
-1. **Karpathy "Surgical" vs gstack 23 skill bloat** → with 는 6+1 개로 축소. gstack 의 `/review` `/qa` `/ship` 실행층 제외, 그 자리는 Superpowers TDD + 직접 `gh`.
-2. **Karpathy "Simplicity" vs Superpowers "mandatory full cycle"** → 작은 task 는 `/with-chain --quick`, plan + build 만.
+1. **Karpathy "Surgical" vs gstack 23 skill bloat** → with 는 6+3 개로 축소. gstack 의 `/review` `/qa` `/ship` 실행층 제외, 그 자리는 Superpowers TDD + 직접 `gh`.
+2. **Karpathy "Simplicity" vs Superpowers "mandatory full cycle"** → 작은 task 는 `/with-chain-light` (clarify→build→codex), 일반은 `/with-chain-normal`. full cycle 강제 X.
 3. **gstack `/office-hours` vs Mattpocock grill 중복** → grill = 도메인 모델 (용어·결정), office-hours = 제품 reframe (whether to build). 역할 분리.
 4. **Codex 권고가 Karpathy 4 위반** → 버린다. 한 줄 보고.
 
@@ -104,7 +154,7 @@ npx skills@latest add mattpocock/skills/ubiquitous-language
 
 ```
 your-project/
-├── CLAUDE.md                # 행동 spec (~150줄)
+├── CLAUDE.md                # 행동 spec (~180줄)
 ├── .claude/
 │   ├── settings.json        # 모델 + 토큰 env
 │   ├── commands/
@@ -114,7 +164,9 @@ your-project/
 │   │   ├── with-plan.md
 │   │   ├── with-build.md
 │   │   ├── with-review.md
-│   │   └── with-chain.md    # 자동 orchestrator
+│   │   ├── with-chain-light.md   # orchestrator (light)
+│   │   ├── with-chain-normal.md  # orchestrator (normal)
+│   │   └── with-chain-deep.md    # orchestrator (deep)
 │   └── plans/               # /with-plan 출력
 └── docs/
     ├── CONTEXT.md
@@ -124,7 +176,7 @@ your-project/
 
 ---
 
-## 7 스킬
+## 9 스킬
 
 | 명령 | 출처 | 모델 | 역할 |
 |---|---|---|---|
@@ -134,9 +186,11 @@ your-project/
 | `/with-plan` | Karpathy Goal-Driven | opus | atomic task + verify |
 | `/with-build` | Karpathy + Superpowers TDD | sonnet | RED-GREEN-REFACTOR atomic commit |
 | `/with-review` | Karpathy 4 | sonnet | 4 원칙 위반만 (severity) |
-| `/with-chain` | orchestrator | opus | 전 단계 자동 호출 + 게이트에서만 정지 |
+| `/with-chain-light` | orchestrator (light) | opus | clarify → build → codex:review |
+| `/with-chain-normal` | orchestrator (normal) | opus | brainstorm → plan → codex:adv → build → codex:review → with-review |
+| `/with-chain-deep` | orchestrator (deep) | opus | grill → office-hours → … → with-review (8 stage) |
 
-Codex plugin 직접 호출 (또는 `/with-chain` 내부에서 자동):
+Codex plugin 직접 호출 (또는 `/with-chain-*` 내부에서 자동):
 - `/codex:review` · `/codex:adversarial-review` · `/codex:codex-rescue` · `/codex:setup`
 
 ---
@@ -145,7 +199,7 @@ Codex plugin 직접 호출 (또는 `/with-chain` 내부에서 자동):
 
 | 작업 | 모델 |
 |---|---|
-| grill · office-hours · brainstorm · plan · chain | opus |
+| grill · office-hours · brainstorm · plan · chain-* | opus |
 | build · review | sonnet |
 | 단순 grep · test · 조회 | haiku (subagent) |
 | 적대적 리뷰 · 2nd opinion | codex (외부) |
@@ -159,7 +213,7 @@ Codex plugin 직접 호출 (또는 `/with-chain` 내부에서 자동):
 
 ## Codex 운영
 
-- 호출 시점: plan 직후 · 구현 직후 · ship 직전 · rescue (수동) — 또는 `/with-chain` 자동
+- 호출 시점: plan 직후 · 구현 직후 · ship 직전 · rescue (수동) — 또는 `/with-chain-*` 자동 (모든 깊이에 포함)
 - 권고 평가: Karpathy 4 통과 → 채택, 위반 → 버린다. 한 줄 보고
 - 큰 diff: `--background` 강제. 컨텍스트 0
 - Rescue 무한루프: 같은 task 2회 이상 X. 결과는 Claude 직접 검토

@@ -24,35 +24,79 @@
 
 ---
 
-## 2. 체인 워크플로우 (idea → ship)
+## 2. 체인 워크플로우 (idea → ship) — 3 깊이
+
+작업 규모에 맞춰 3단계 깊이 중 선택. **Codex review 는 모든 깊이에 포함** (`--no-codex` 로만 패스).
+
+### `/with-chain-light <task> [--no-codex]` — 가장 가벼움
 
 ```
 아이디어
   ↓
-/with-grill          # 도메인 + 용어 (Mattpocock)
+명확화 Q&A (1-3 질문)        # Karpathy "Think" 만 통과
   ↓
-/with-office-hours   # YC-partner reframe (gstack)
+/with-build                  # Sonnet TDD
   ↓
-/with-brainstorm     # 대안 + design sections (Superpowers)
+/codex:review                # diff 깨기
   ↓
-/with-plan           # atomic plan + verify (Karpathy)
-  ↓
-/codex:adversarial-review   # plan 깨기
-  ↓
-/with-build          # Sonnet TDD 실행 (Karpathy + Superpowers TDD)
-  ↓
-/codex:review        # diff 깨기
-  ↓
-/with-review         # Karpathy 4 final check
-  ↓
-ship (gh pr create — 사용자 직접)
+ship (사용자 직접)
 ```
 
-**`/with-chain <feature> [--quick] [--no-codex]`** — 위 체인 전체 자동 orchestrate. 사용자 결정 게이트(질문 / section OK / blocker)에서만 정지. 단일 스킬 호출도 그대로 가능. `--quick` 작은 task 는 grill·office-hours 패스. `--no-codex` Codex 단계 패스. ship 은 자동 X — 사용자 결정.
+버그 fix · 작은 기능 · 접근 명백한 task. plan / brainstorm 패스. 4개 이상 질문 떠오르면 normal 로 escalate.
+
+### `/with-chain-normal <feature> [--no-codex]` — 중간
+
+```
+아이디어
+  ↓
+/with-brainstorm             # 대안 + design sections
+  ↓
+/with-plan                   # atomic plan + verify
+  ↓
+/codex:adversarial-review    # plan 깨기
+  ↓
+/with-build                  # Sonnet TDD
+  ↓
+/codex:review                # diff 깨기
+  ↓
+/with-review                 # Karpathy 4 final check
+  ↓
+ship (사용자 직접)
+```
+
+도메인은 알지만 접근 옵션 비교 + atomic plan 필요한 일반 기능 (3~10 파일).
+
+### `/with-chain-deep <feature> [--no-codex]` — 풀 사이클
+
+```
+아이디어
+  ↓
+/with-grill                  # 도메인 + 용어 (Mattpocock)
+  ↓
+/with-office-hours           # YC-partner reframe (gstack)
+  ↓
+/with-brainstorm             # 대안 + design sections
+  ↓
+/with-plan                   # atomic plan + verify
+  ↓
+/codex:adversarial-review    # plan 깨기
+  ↓
+/with-build                  # Sonnet TDD
+  ↓
+/codex:review                # diff 깨기
+  ↓
+/with-review                 # Karpathy 4 final check
+  ↓
+ship (사용자 직접)
+```
+
+새 시스템 · 큰 기능 · 도메인 모델 불명확 · 제품 premise 자체 의심해야 할 때.
+
+**공통**: 사용자 결정 게이트(질문 / section OK / blocker)에서만 정지. 단일 스킬 호출도 그대로 가능. ship 은 자동 X — 사용자 결정.
 
 ---
 
-## 3. 스킬 매핑 (7개, `with-` 접두어)
+## 3. 스킬 매핑 (9개, `with-` 접두어)
 
 | 명령 | 출처 | 단계 | 모델 | 출력 |
 |---|---|---|---|---|
@@ -62,9 +106,16 @@ ship (gh pr create — 사용자 직접)
 | `/with-plan` | Karpathy Goal-Driven | atomic 분해 | opus | `.claude/plans/<feature>.md` (각 task 에 `→ verify:`) |
 | `/with-build` | Karpathy + Superpowers TDD | 구현 | sonnet | RED-GREEN-REFACTOR atomic commit |
 | `/with-review` | Karpathy 4 | final check | sonnet | 4원칙 위반 보고 (severity) |
-| `/with-chain` | orchestrator | 전 단계 자동 | opus | 위 6개를 순서대로 호출 + 게이트에서만 정지 |
+| `/with-chain-light` | orchestrator (light) | clarify→build→codex | opus | 1-3 질문 + commits + codex pass |
+| `/with-chain-normal` | orchestrator (normal) | brainstorm→plan→build→reviews | opus | plan + commits + codex × 2 + with-review |
+| `/with-chain-deep` | orchestrator (deep) | grill→…→with-review (8 stage) | opus | ADRs + plan + commits + codex × 2 + with-review |
 
 Codex 명령은 plugin 직접 — wrapper X: `/codex:setup` · `/codex:review` · `/codex:adversarial-review` · `/codex:codex-rescue`.
+
+**chain 깊이 선택 가이드**:
+- 버그 fix · 1~3 파일 · 접근 명백 → **light**
+- 3~10 파일 · 접근 옵션 비교 필요 → **normal**
+- 새 시스템 · 도메인 불명확 · premise 의심 → **deep**
 
 ---
 
